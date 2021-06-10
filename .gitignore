@@ -347,4 +347,7 @@ $RECYCLE.BIN/
 
 # Custom
 data/
-data_master.csv
+data_master*.csv
+experiments
+logs
+archive
