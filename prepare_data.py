@@ -14,6 +14,7 @@ from tqdm import tqdm
 # import extract_features
 from inf_extract_features import ExtractFeatures
 from utils import ParallelExecutor
+from utils import match_data
 from utils import rolling_window
 
 
@@ -36,48 +37,6 @@ def load_csv():
             label += [int(row["Label"])]
 
     return ID, ID_ling, label, trainL, df
-
-
-def match_data(files, labelPath=None):
-    files = sorted(files)
-    DF = pd.DataFrame(files, columns=["Filepath"])
-    # DF['ID'] = [N[N.find('data_') + 5:N.find('.mat')] for N in files]
-    DF["ID"] = DF["Filepath"].apply(lambda x: os.path.splitext(os.path.basename(x))[0].split("preds_")[1])
-
-    # HACK
-    DF["ID"] = DF["ID"].apply(lambda x: str(x[:5]) if "notte" in x else x)
-    DF["ID"] = DF["ID"].apply(lambda x: str(x[:8]) if "_p" in x else x)
-
-    # labelPath = '/home/neergaard/jens/narcolepsy_data.CSV'
-    # labelPath = '/home/neergaard/jens/narco_ml/data overview/overview_file_cohortsEM-ling1.csv'
-    # labelPath = '/home/neergaard/jens/narco_ml/data overview/overview_file_cohorts.xlsx'
-
-    ### SHERLOCK
-    if labelPath is None:
-        # labelPath = '/home/users/alexno/overview_file_cohorts.xlsx'
-        labelPath = "./data_master.csv"
-    ###
-
-    # narcoDat = pd.read_csv(labelPath, delimiter=',')
-    # narcoDat = pd.read_excel(labelPath)
-    narcoDat = pd.read_csv(labelPath, delimiter=",")
-    # names = narcoDat['Name'].values.tolist()
-    # names = [N[:N.find(';')] for N in names]
-    # narcoDat['Name'] = names
-
-    DFmerge = pd.merge(DF, narcoDat, how="inner", left_on="ID", right_on="ID")
-
-    DFmerge["label"] = -1
-    DFmerge.loc[DFmerge["Diagnosis"] == "'T1 NARCOLEPSY'", "label"] = 1
-    DFmerge.loc[DFmerge["Diagnosis"] == "'NON-NARCOLEPSY CONTROL'", "label"] = 0
-    DFmerge.loc[DFmerge["Diagnosis"] == "'OTHER HYPERSOMNIA'", "label"] = 0
-    # DFmerge['label'][DFmerge['Diagnosis'] == "T1 NARCOLEPSY"] = 1
-    # DFmerge['label'][DFmerge['Diagnosis'] == "NON-NARCOLEPSY CONTROL"] = 0
-    # DFmerge['label'][DFmerge['Diagnosis'] == "OTHER HYPERSOMNIA"] = 0
-
-    DFmerge = DFmerge[DFmerge["label"] != -1]
-    DFmerge = DFmerge.sort_values("ID")
-    return DFmerge
 
 
 if __name__ == "__main__":
