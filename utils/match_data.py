@@ -10,8 +10,8 @@ def match_data(files, labelPath=None):
     DF["ID"] = DF["Filepath"].apply(lambda x: os.path.splitext(os.path.basename(x))[0].split("preds_")[1])
 
     # HACK
-    DF["ID"] = DF["ID"].apply(lambda x: str(x[:5]) if "notte" in x else x)
-    DF["ID"] = DF["ID"].apply(lambda x: str(x[:8]) if "_p" in x else x)
+    DF["ID"] = DF["ID"].apply(lambda x: str(x[:5]) if "notte" in x else x)  # This removes unneccessary chars in IHC data
+    DF["ID"] = DF["ID"].apply(lambda x: str(x[:8]) if "_p" in x else x)  # This removes unnecessary chars in KHC data
 
     if labelPath is None:
         labelPath = "./data_master.csv"

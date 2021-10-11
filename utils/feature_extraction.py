@@ -3,6 +3,8 @@ import itertools
 import numpy as np
 import pywt
 
+from utils.rolling_window import rolling_window_nodelay
+
 
 def extract_features(hyp, resolution, hyp_30s=None):
 
@@ -263,3 +265,187 @@ def wavelet_entropy(dat):
     WE = -np.sum(np.log(pai) * pai)
 
     return WE
+
+
+def calc_sorem(hyp, resolution, sorem_thresholds):
+
+    eps = 1e-10
+    #     features = np.zeros([24 + 31 * 15])
+    features = []
+    j = -1
+    f = 10
+
+    if not np.allclose(hyp.sum(axis=1)[0], 1.0):
+        print("Softmax'ing")
+        hyp = softmax(hyp)
+    data = hyp
+    S = np.argmax(data, axis=1)
+
+    # Sleep latency
+    SL = [i for i, v in enumerate(S) if v != 0]
+    if len(SL) == 0:
+        SL = len(data)
+    else:
+        SL = SL[0]
+
+    # REM latency (SL will be subtracted later)
+    RL = [i for i, v in enumerate(S) if v == 4]
+    if len(RL) == 0:
+        RL = len(data)
+    else:
+        RL = RL[0]
+
+    def soremp(S, SL, threshold=4, rcount_threshold=2):
+        wCount = 0
+        rCount = 0
+        rCountR = 0
+        soremC = 0
+        """
+        # The following was originally used, but found to be inconsistent with the described feature it implements.
+        for i in range(SL, len(S)):
+            if (S[i] == 0) | (S[i] == 1):
+                wCount += 1
+            elif (S[i] == 4) & (wCount > 4):
+                rCount += 1
+                rCountR += 1
+            elif rCount > 1:
+                soremC += 1
+            else:
+                wCount = 0
+                rCount = 0
+        """
+
+        """
+        Updated
+        This ensures we meet the criteria for a SOREMP and also takes care of counting the first epoch of REM of
+        that SOREMP.  The manuscript code took care of the first epoch of REM but used too general of a description
+        for a SOREMP (i.e. missed the minimum requirement of one minute of REM).
+        """
+        for i in range(SL, len(S)):
+            if (S[i] == 0) | (S[i] == 1):
+                wCount += 1
+            elif (S[i] == 4) & (wCount > threshold):
+                rCount += 1
+                if rCount == rcount_threshold:
+                    soremC += 1
+                    rCountR += rcount_threshold
+                elif rCount > rcount_threshold:
+                    rCountR += 1
+            else:
+                wCount = 0
+                rCount = 0
+        return rCountR, soremC
+
+    for thr in sorem_thresholds:
+        rCountR, soremC = soremp(S, SL, threshold=thr)
+        features.append((thr, rCountR, soremC))
+
+    return features
+
+
+def calc_nremfrag(hyp, resolution, nremfrag_thresholds):
+
+    eps = 1e-10
+    #     features = np.zeros([24 + 31 * 15])
+    features = []
+    j = -1
+    f = 10
+
+    if not np.allclose(hyp.sum(axis=1)[0], 1.0):
+        print("Softmax'ing")
+        hyp = softmax(hyp)
+    data = hyp
+    S = np.argmax(data, axis=1)
+
+    # Sleep latency
+    SL = [i for i, v in enumerate(S) if v != 0]
+    if len(SL) == 0:
+        SL = len(data)
+    else:
+        SL = SL[0]
+
+    # REM latency (SL will be subtracted later)
+    RL = [i for i, v in enumerate(S) if v == 4]
+    if len(RL) == 0:
+        RL = len(data)
+    else:
+        RL = RL[0]
+
+    # NREM Fragmentation
+    def nrem_fragmentation(threshold=3):
+        nCount = 0
+        nFrag = 0
+        for i in range(SL, len(S)):
+            if (S[i] == 2) | (S[i] == 3):
+                nCount += 1
+            elif ((S[i] == 0) | (S[i] == 1)) & (nCount > threshold):
+                nFrag += 1
+                nCount = 0
+        return nFrag
+
+    for thr in nremfrag_thresholds:
+        nFrag = nrem_fragmentation(threshold=thr)
+        features.append((thr, nFrag))
+
+    return features
+
+
+def calc_transition_triples(hypnodensity, resolution):
+    """Calculate the transition triplet frequencies per 1.5 hour time segments as described in
+    Perslev, M., Darkner, S., Kempfner, L. et al. U-Sleep: resilient high-frequency sleep staging.
+    npj Digit. Med. 4, 72 (2021). https://doi.org/10.1038/s41746-021-00440-5.
+
+    Args:
+        hypnodensity (array_like): A `N x 5` array containing sleep stage probabilities.
+        resolution (int): Resolution of supplied hypnodensity. E.g. `resolution=3` means 1 prediction every 3 s.
+
+    Returns:
+        transition_triples: a set of transition triplet categories.
+        features (array_like): A `K x 80` array containing bin counts for each triplet. Here, `K` is the number of 1.5 h segments in `hypnodensity`.
+    """
+
+    transition_triplets = set(
+        [trip for trip in list(itertools.product(*[[0, 1, 2, 3, 4]] * 3)) if (trip[0] != trip[1] and trip[1] != trip[2])]
+    )
+
+    features = []
+
+    if not np.allclose(hypnodensity.sum(axis=1)[0], 1.0):
+        print("Softmax'ing")
+        hypnodensity = softmax(hypnodensity)
+
+    # Get hypnogram
+    hypnogram = np.argmax(hypnodensity, axis=1)
+
+    # Get how many 1.5 h segments
+    segments_per_resolution = 1.5 * 3600 / resolution
+    n_segments = int(len(hypnogram) // segments_per_resolution)
+
+    # Split the hypnogram into 1.5 h chunks
+    chunked_hypnogram = rolling_window_nodelay(hypnogram, int(segments_per_resolution), int(segments_per_resolution)).T
+    chunked_hypnogram = chunked_hypnogram[:n_segments]
+
+    # For each segment, calculate the distribution of transition triplets
+    i = 0
+    bin_counts = []
+    for hypnogram_segment in chunked_hypnogram:
+        bin_count = np.zeros(len(transition_triplets))
+        while i < segments_per_resolution - 2:
+            triplet_candidate = hypnogram_segment[i : i + 3]
+            bin_idx = [trip_idx for trip_idx, trip in enumerate(transition_triplets) if tuple(triplet_candidate) == trip]
+            if bin_idx:
+                bin_count[bin_idx] += 1
+            i += 1
+        bin_counts.append(bin_count)
+    features = np.asarray(bin_counts)
+
+    return transition_triplets, features
+
+
+if __name__ == "__main__":
+    hypnogram_duration_h = 8
+    resolution = 5
+    hypnogram_dur_s = 8 * 3600 // resolution
+    hypnodensity = softmax(np.random.randn(hypnogram_dur_s, 5))
+
+    features = calc_transition_triples(hypnodensity, resolution)
