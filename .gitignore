@@ -351,3 +351,5 @@ data_master*.csv
 experiments
 logs
 archive
+*.png
+to_emmanuel.txt
