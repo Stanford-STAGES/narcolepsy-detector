@@ -1,7 +1,28 @@
 import itertools
 
+import numpy as np
+import pandas as pd
+
 
 def get_feature_descriptions(selected_features):
+
+    feature_type_descriptions = [
+        "Log average",
+        "Log maximum",
+        "Log average differential",
+        "Log Shannon entropy of wavelet coeffs.",
+        "Log time until 5% maximum",
+        "Log time until 10% maximum",
+        "Log time until 30% maximum",
+        "Log time until 50% maximum",
+        "Weighted maximum value",
+        "Weighted average differential",
+        "Weighted log Shannon entropy",
+        "Weighted time until 5% maximum",
+        "Weighted time until 10% maximum",
+        "Weighted time until 30% maximum",
+        "Weighted time until 50% maximum",
+    ]
 
     feature_descriptions = []
 
@@ -10,7 +31,7 @@ def get_feature_descriptions(selected_features):
         for comb in itertools.combinations(["W", "N1", "N2", "N3", "R"], i + 1):
             j += 1
             for f in range(15):
-                feature_descriptions.append((str(f + 1), comb))
+                feature_descriptions.append((str(f + 1), comb, feature_type_descriptions[f]))
 
             # feature_descriptions
             # features[j*15] = np.log(np.mean(dat) + eps)
@@ -39,8 +60,8 @@ def get_feature_descriptions(selected_features):
             # features[j*15+13] = np.sqrt(I3*2*np.mean(dat))
             # features[j*15+14] = np.sqrt(I4*2*np.mean(dat))
 
-    feature_descriptions.append(("SL",))
-    feature_descriptions.append(("REML",))
+    feature_descriptions.append(("SL"))
+    feature_descriptions.append(("REML"))
     feature_descriptions.append(("cumulative REM duration following W/N1 periods > 2.5 min"))
     feature_descriptions.append(("total nightly SOREMP duration following W/N1 periods > 2.5 min"))
     feature_descriptions.append(("NREM fragmentation"))
@@ -71,7 +92,15 @@ def get_feature_descriptions(selected_features):
     for idx, f in enumerate(selected_features):
         #         print(idx, f, feature_descriptions[f])
         output.append((idx, f, feature_descriptions[f]))
-    return output
+
+    return pd.DataFrame(
+        {
+            "FeatureIdx": [f[1] for f in output],
+            "FeatureTypeIdx": [f[-1][0] if isinstance(f[-1], tuple) else np.nan for f in output],
+            "StageCombination": [f[-1][1] if isinstance(f[-1], tuple) else np.nan for f in output],
+            "FeatureDescription": [f[-1][-1] if isinstance(f[-1], tuple) else f[-1] for f in output],
+        }
+    )
 
     # features[-24] = SL*f  # Sleep latency
     # features[-23] = RL-SL*f  # REM latency
@@ -88,7 +117,16 @@ if __name__ == "__main__":
     # fmt: off
     # selected_features = (1, 11, 16, 22, 25, 41, 43, 49, 64, 65, 86, 87, 103, 119, 140, 147, 149, 166, 196, 201, 202, 220, 244, 245, 261, 276, 289, 296, 299, 390, 405, 450, 467, 468, 470, 474, 476, 477)
     # selected_features = (1, 11, 16, 22, 25, 41, 43, 49, 64, 65, 86, 87, 103, 119, 140, 147, 149, 166, 196, 201, 202, 220, 244, 245, 261, 276, 289, 296, 299, 390, 405, 450, 467, 468, 470)
-    selected_features = (1, 4, 11, 16, 22, 25, 41, 43, 49, 64, 65, 86, 87, 103, 119, 140, 147, 149, 166, 196, 201, 202, 220, 244, 245, 261, 276, 289, 296, 390, 405, 450, 467, 468, 470)
+    # selected_features = (1, 4, 11, 16, 22, 25, 41, 43, 49, 64, 65, 86, 87, 103, 119, 140, 147, 149, 166, 196, 201, 202, 220, 244, 245, 261, 276, 289, 296, 390, 405, 450, 467, 468, 470)
+    selected_features = range(489)
     # fmt: on
 
-    get_feature_descriptions(selected_features)
+    feature_descriptions = get_feature_descriptions(selected_features)
+    print("")
+    print(
+        "| Hypnodensity-derived features                                                                                                   |"
+    )
+    print(
+        "|=================================================================================================================================|"
+    )
+    print(feature_descriptions.to_markdown(index=False))
