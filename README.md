@@ -1,6 +1,6 @@
 # narcolepsy-detector
 
-## Table of contents
+<!-- ## Table of contents -->
 <!-- 1. `prepare_data.py` -->
 
 

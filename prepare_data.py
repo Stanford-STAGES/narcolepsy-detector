@@ -9,8 +9,12 @@ import numpy as np
 from tqdm import tqdm
 
 from utils import extract_features, calc_sorem, calc_nremfrag
+from utils import get_logger
 from utils import match_data
 from utils import rolling_window
+
+
+logger = get_logger()
 
 
 def merge_dfs(data_dir):
@@ -32,7 +36,8 @@ def prepare_data(data_dir, resolutions, output_dir, subset, saveFile=None):
 
     for p in [data_dir, output_dir]:
         if not os.path.exists(p):
-            print("{} | Creating directory: {}".format(datetime.now(), p))
+            # print("{} | Creating directory: {}".format(datetime.now(), p))
+            logger.info(f"Creating directory: {p}")
             os.makedirs(p)
 
     foldersPath = os.listdir(data_dir)
@@ -44,18 +49,21 @@ def prepare_data(data_dir, resolutions, output_dir, subset, saveFile=None):
     # if True:
     dfs = []
     for resolution in resolutions:
-        print(f"{datetime.now()} | Running feature extraction for {resolution} s resolution")
+        # print(f"{datetime.now()} | Running feature extraction for {resolution} s resolution")
+        logger.info(f"Running feature extraction for {resolution} s resolution")
         # for f in foldersPath:
         # count += 1
         filesPath = glob(os.path.join(data_dir, "**", "pred*.pkl"), recursive=True)
         DF = match_data(filesPath)
-        if subset == "test":
-            DF = DF[DF["Narcolepsy test data"] == 1]
-        else:
-            DF = DF[DF["Narcolepsy training data"] == 1]
+        # if subset == "test":
+        #     DF = DF[DF["Narcolepsy test data"] == 1]
+        # else:
+        #     DF = DF[DF["Narcolepsy training data"] == 1]
         N = len(DF)
-        for thr in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 30, 50, 100, 150, 200, 250, 300, 500]:
-            print(f"{datetime.now()} | Current threshold: {thr}")
+        # for thr in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 30, 50, 100, 150, 200, 250, 300, 500]:
+        for thr in [1]:
+            # print(f"{datetime.now()} | Current threshold: {thr}")
+            logger.info(f"Current threshold: {thr}")
             # features = np.zeros([24 + 31 * 15, len(DF)])
             features = [[]] * N
             labels = np.zeros(N)
@@ -71,12 +79,15 @@ def prepare_data(data_dir, resolutions, output_dir, subset, saveFile=None):
                 labels[i] = DF["label"].values[i]
                 ID[i] = DF.iloc[i]["ID"]
                 cohort[i] = DF.iloc[i]["Cohort"]
-                if resolution == 1:
-                    resolution_key = "logits"
-                elif resolution == 30:
-                    resolution_key = "predicted"
-                else:
+                try:
                     resolution_key = f"yhat_{resolution}s"
+                except:
+                    if resolution == 1:
+                        resolution_key = "logits"
+                    elif resolution == 30:
+                        resolution_key = "predicted"
+                    else:
+                        resolution_key = f"yhat_{resolution}s"
                 try:
                     hypnodensity = contents[resolution_key]
                 except KeyError:
@@ -86,14 +97,14 @@ def prepare_data(data_dir, resolutions, output_dir, subset, saveFile=None):
                 if len(hypnodensity) == 0:
                     continue
 
-                #             features[i] = extract_features(hypnodensity, resolution, hypnodensity_30s)
+                features[i] = extract_features(hypnodensity, resolution, hypnodensity_30s)
                 # _, *features[i] = calc_sorem(hypnodensity, resolution, [thr])[0]
-                _, *features[i] = calc_nremfrag(hypnodensity, resolution, [thr])[0]
+                # _, *features[i] = calc_nremfrag(hypnodensity, resolution, [thr])[0]
                 # threshold[i] = thr
             features = np.asarray(features)
-            _df = pd.DataFrame({"ID": ID, "Cohort": cohort, "Label": labels, "Threshold": threshold, "Resolution": res}).join(
-                pd.DataFrame(features)
-            )
+            _df = pd.DataFrame(
+                {"ID": ID, "Cohort": cohort, "Label": labels, "Threshold": threshold, "Resolution": res}
+            ).join(pd.DataFrame(features))
             dfs.append(_df)
             # features = np.asarray(features)
 
@@ -101,10 +112,13 @@ def prepare_data(data_dir, resolutions, output_dir, subset, saveFile=None):
     # saveFile = os.path.join(output_dir, f"{f}_r{resolution:02}_trainD_unscaled.csv")
     # saveFile = os.path.join(output_dir, f"{model_str}_r{resolution:02}_unscaled.csv")
     if saveFile is None:
-        saveFile = os.path.join(output_dir, "_".join(filter(None, (model_str, f"r{resolution:02}", subset, "unscaled.csv"))))
+        saveFile = os.path.join(
+            output_dir, "_".join(filter(None, (model_str, f"r{resolution:02}", subset, "unscaled.csv")))
+        )
     else:
         saveFile = os.path.join(output_dir, saveFile)
-    print("{} | Saving {}".format(datetime.now(), saveFile))
+    # print("{} | Saving {}".format(datetime.now(), saveFile))
+    logger.info(f"Saving {saveFile}")
     data_df = pd.concat(dfs)
     # data_df = pd.DataFrame({"ID": ID, "Cohort": cohort, "Label": labels}).join(pd.DataFrame(features))
     data_df.to_csv(saveFile)

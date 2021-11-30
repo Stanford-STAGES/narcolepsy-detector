@@ -23,7 +23,7 @@ CUDNN_VER="8.1.1.33"
 # echo "Loading TF version $TF_VER"
 # ml load py-tensorflow/$TF_VER
 
-source $PI_HOME/miniconda3/bin/activate
+source $GROUP_HOME/miniconda3/bin/activate
 if [ $CONDA_DEFAULT_ENV != "base" ]; then
     echo "Unloading current environment"
     conda deactivate

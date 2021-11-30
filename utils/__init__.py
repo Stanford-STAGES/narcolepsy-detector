@@ -1,4 +1,5 @@
 from .feature_extraction import extract_features, calc_sorem, calc_nremfrag
+from .logger import get_logger
 from .match_data import match_data
 
 # from .multitaper_spectrogram import multitaper_spectrogram
