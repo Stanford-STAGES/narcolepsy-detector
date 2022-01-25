@@ -39,7 +39,7 @@ def prepare_data(data_dir, resolutions, output_dir, subset, saveFile=None):
         if not os.path.exists(p):
             # print("{} | Creating directory: {}".format(datetime.now(), p))
             logger.info(f"Creating directory: {p}")
-            os.makedirs(p)
+            os.makedirs(p, exist_ok=True)
 
     foldersPath = os.listdir(data_dir)
     model_str = os.path.basename(data_dir)
