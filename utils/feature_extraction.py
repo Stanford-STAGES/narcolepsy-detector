@@ -27,14 +27,19 @@ def extract_features(hyp, resolution, hyp_30s=None):
             j += 1
             dat = np.prod(hyp[:, comb], axis=1) ** (1 / float(len(comb)))
 
-            features[j * 15] = np.log(np.mean(dat) + eps)
-            features[j * 15 + 1] = -np.log(1 - np.max(dat) + eps)
+            dat_mean = np.mean(dat)
+            dat_max = np.max(dat)
+            dat_diff = np.diff(dat)
+            dat_waventr = wavelet_entropy(dat)
+
+            features[j * 15] = np.log(dat_mean + eps)
+            features[j * 15 + 1] = -np.log(1 - dat_max + eps)
 
             # moving_av = np.convolve(dat, np.ones(self.moving_avg_epochs), mode="valid")
             # features[j * 15 + 2] = np.mean(np.abs(np.diff(moving_av)))
-            features[j * 15 + 2] = np.mean(np.abs(np.diff(dat)))
+            features[j * 15 + 2] = np.mean(np.abs(dat_diff))
 
-            features[j * 15 + 3] = wavelet_entropy(dat)  # Shannon entropy - check if it is used as a feature
+            features[j * 15 + 3] = dat_waventr  # Shannon entropy - check if it is used as a feature
 
             rate = np.cumsum(dat) / np.sum(dat)
             I1 = next(i for i, v in enumerate(rate) if v > 0.05)
@@ -46,13 +51,13 @@ def extract_features(hyp, resolution, hyp_30s=None):
             I4 = next(i for i, v in enumerate(rate) if v > 0.5)
             features[j * 15 + 7] = np.log(I4 * 2 + eps)
 
-            features[j * 15 + 8] = np.sqrt(np.max(dat) * np.mean(dat) + eps)
-            features[j * 15 + 9] = np.mean(np.abs(np.diff(dat)) * np.mean(dat) + eps)
-            features[j * 15 + 10] = np.log(wavelet_entropy(dat) * np.mean(dat) + eps)
-            features[j * 15 + 11] = np.sqrt(I1 * 2 * np.mean(dat))
-            features[j * 15 + 12] = np.sqrt(I2 * 2 * np.mean(dat))
-            features[j * 15 + 13] = np.sqrt(I3 * 2 * np.mean(dat))
-            features[j * 15 + 14] = np.sqrt(I4 * 2 * np.mean(dat))
+            features[j * 15 + 8] = np.sqrt(dat_max * dat_mean + eps)
+            features[j * 15 + 9] = np.mean(np.abs(dat_diff) * dat_mean + eps)
+            features[j * 15 + 10] = np.log(dat_waventr * dat_mean + eps)
+            features[j * 15 + 11] = np.sqrt(I1 * 2 * dat_mean)
+            features[j * 15 + 12] = np.sqrt(I2 * 2 * dat_mean)
+            features[j * 15 + 13] = np.sqrt(I3 * 2 * dat_mean)
+            features[j * 15 + 14] = np.sqrt(I4 * 2 * dat_mean)
 
     if hyp_30s is not None:
         # Use 30 s scoring for the next features
@@ -258,7 +263,7 @@ def find_peaks(x):
 
 
 def wavelet_entropy(dat):
-    coef, _ = pywt.cwt(dat, np.arange(1, 60), "gaus1")
+    coef, _ = pywt.cwt(dat, np.arange(1, 60), "gaus1", method="fft")
     Eai = np.sum(np.square(np.abs(coef)), axis=1)
     pai = Eai / np.sum(Eai)
 
