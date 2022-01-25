@@ -18,6 +18,7 @@ from utils import plot_roc_ensemble
 
 
 def evaluate_single_model(data=None, experiment=None, savedir_output=None):
+
     assert all(
         [data, experiment]
     ), f"Please specifiy both data and model to be evaluated, received data={data}, experiment={experiment}."
@@ -38,6 +39,10 @@ def evaluate_single_model(data=None, experiment=None, savedir_output=None):
     # Run over experiments
     print(f"Evaluating {len(experiment)} experiments:")
     for i, (d, exp) in enumerate(zip(data, experiment)):
+
+        print("")
+        print(f"Evaluating experiment: {exp}")
+        print(f"Data: {d}")
 
         # Get settings
         with open(os.path.join(exp, "settings.json"), "r") as fp:
