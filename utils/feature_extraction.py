@@ -447,6 +447,31 @@ def calc_transition_triples(hypnodensity, resolution):
     return transition_triplets, features
 
 
+def multi_step_transition_matrix(x, num_steps=8, resolution=None):
+    """Calculates the transition matrix at multiple logaritmic steps for x.
+
+    @author Mads Olsen
+
+    :param x: input 2D matrix, with x.shape[0]: timesteps and x.shape[1]: num_classes.
+    :param num_steps: number of matrix multiplications calculated at logarithmically spaced steps.
+        x.shape[0] >= 2 ** num_steps
+    :return: Multi-step transition matrix with shape: [num_steps * num_classes ** 2]
+
+    """
+    # Per correspondence w. Mads Olsen
+    # This should be changed to automatically adjust based on the resolution
+    if resolution is not None:
+        num_steps = int(np.ceil(np.log2(7200 / resolution)))
+        # if resolution == 128:
+        #     num_steps = 20
+        # elif resolution == 30:
+        #     num_steps = 8
+
+    step_idx = [2 ** idx for idx in range(num_steps)]
+    matmulfun = lambda tau: np.matmul(x[:-tau, :].transpose(), x[tau:, :]) / x[:-tau, :].shape[0]
+    return np.array(list(map(matmulfun, step_idx))).flatten()
+
+
 if __name__ == "__main__":
     hypnogram_duration_h = 8
     resolution = 5
