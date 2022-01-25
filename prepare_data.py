@@ -12,6 +12,7 @@ from utils import extract_features, calc_sorem, calc_nremfrag
 from utils import get_logger
 from utils import match_data
 from utils import rolling_window
+from utils.feature_extraction import multi_step_transition_matrix
 
 
 logger = get_logger()
@@ -49,8 +50,12 @@ def prepare_data(data_dir, resolutions, output_dir, subset, saveFile=None):
     # if True:
     dfs = []
     for resolution in resolutions:
+        if resolution % 1 == 0:
+            resolution = int(resolution)
+        num_steps = int(np.ceil(np.log2(7200 / resolution)))
         # print(f"{datetime.now()} | Running feature extraction for {resolution} s resolution")
         logger.info(f"Running feature extraction for {resolution} s resolution")
+        logger.info(f"Using {num_steps} for transition matrix calculations")
         # for f in foldersPath:
         # count += 1
         filesPath = glob(os.path.join(data_dir, "**", "pred*.pkl"), recursive=True)
@@ -96,8 +101,12 @@ def prepare_data(data_dir, resolutions, output_dir, subset, saveFile=None):
                 hypnodensity_30s = contents["predicted"]
                 if len(hypnodensity) == 0:
                     continue
-
-                features[i] = extract_features(hypnodensity, resolution, hypnodensity_30s)
+                feature_vec = []
+                feature_vec.extend(extract_features(hypnodensity, resolution, hypnodensity_30s))
+                # feature_vec.extend(multi_step_transition_matrix(hypnodensity, resolution=resolution))
+                features[i] = feature_vec
+                # features[i] = extract_features(hypnodensity, resolution, hypnodensity_30s)
+                # features[i] = multi_step_transition_matrix(hypnodensity, resolution=resolution)
                 # _, *features[i] = calc_sorem(hypnodensity, resolution, [thr])[0]
                 # _, *features[i] = calc_nremfrag(hypnodensity, resolution, [thr])[0]
                 # threshold[i] = thr
@@ -112,9 +121,7 @@ def prepare_data(data_dir, resolutions, output_dir, subset, saveFile=None):
     # saveFile = os.path.join(output_dir, f"{f}_r{resolution:02}_trainD_unscaled.csv")
     # saveFile = os.path.join(output_dir, f"{model_str}_r{resolution:02}_unscaled.csv")
     if saveFile is None:
-        saveFile = os.path.join(
-            output_dir, "_".join(filter(None, (model_str, f"r{resolution:02}", subset, "unscaled.csv")))
-        )
+        saveFile = os.path.join(output_dir, "_".join(filter(None, (f"r{resolution:02}", subset, "unscaled.csv"))))
     else:
         saveFile = os.path.join(output_dir, saveFile)
     # print("{} | Saving {}".format(datetime.now(), saveFile))
@@ -131,7 +138,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("-d", "--data_dir", type=str, default="./data/massc")
     parser.add_argument("-o", "--output_dir", type=str, default="./data/narco_features")
-    parser.add_argument("-r", "--resolution", type=int, nargs="+", default=15)
+    parser.add_argument("-r", "--resolution", type=float, nargs="+", default=15)
     parser.add_argument("-t", "--test", action="store_true")
     parser.add_argument("-s", "--subset", type=str)
     parser.add_argument("--merge", action="store_true")
