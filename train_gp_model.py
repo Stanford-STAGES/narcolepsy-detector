@@ -182,7 +182,10 @@ def train_single_model(
         try:
             df = pd.read_csv(os.path.join(data_dir, f"{model_base}_long_r{resolution:02}_trainD_unscaled.csv"), index_col=0)
         except FileNotFoundError:
+            try:
             df = pd.read_csv(os.path.join(data_dir, f"{model_base}_long_r{resolution:02}_unscaled.csv"), index_col=0)
+            except FileNotFoundError:
+                df = pd.read_csv(os.path.join(data_dir, f"r{resolution:02}_unscaled.csv"), index_col=0)
             train_idx = df.merge(df_master, left_on=["ID", "Cohort"], right_on=["ID", "Cohort"])["Narcolepsy training data"]
             df = df.loc[train_idx == 1]
         # df = pd.read_csv('data/narco_features/avg_kw21_r15_trainD.csv', index_col=0)
@@ -640,7 +643,7 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--model", required=True, type=str)
     parser.add_argument("-n", "--n_repeats", default=1, type=int)
     parser.add_argument("-p", "--n_inducing_points", default=350, type=int)
-    parser.add_argument("-r", "--resolution", type=int)
+    parser.add_argument("-r", "--resolution", type=float)
     parser.add_argument("-s", "--save_dir", type=str)
     parser.add_argument("--gp_model", type=str, default="svgp")
     parser.add_argument("--log_frequency", type=int, default=10)
@@ -652,6 +655,9 @@ if __name__ == "__main__":
 
     # Set seed
     np.random.seed(42)
+
+    # HACK: Parse the resolution argument
+    args.resolution = int(args.resolution) if args.resolution % 1 == 0 else args.resolution
 
     # Parse experiment dir
     if not args.save_dir:
