@@ -111,9 +111,9 @@ def prepare_data(data_dir, resolutions, output_dir, subset, saveFile=None):
                 # _, *features[i] = calc_nremfrag(hypnodensity, resolution, [thr])[0]
                 # threshold[i] = thr
             features = np.asarray(features)
-            _df = pd.DataFrame(
-                {"ID": ID, "Cohort": cohort, "Label": labels, "Threshold": threshold, "Resolution": res}
-            ).join(pd.DataFrame(features))
+            _df = pd.DataFrame({"ID": ID, "Cohort": cohort, "Label": labels, "Threshold": threshold, "Resolution": res}).join(
+                pd.DataFrame(features)
+            )
             dfs.append(_df)
             # features = np.asarray(features)
 
