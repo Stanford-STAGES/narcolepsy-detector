@@ -520,7 +520,7 @@ def feature_extraction(
         # compute mtm
         mtm = multi_step_transition_matrix(x=x, tau=tau)
         if verbose:
-            print(f"{mtm.shape=}")
+            print(f"{mtm.shape}")
 
         # extract mtm features
         features_ = []

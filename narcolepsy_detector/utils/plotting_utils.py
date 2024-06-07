@@ -9,7 +9,11 @@ def plot_roc(y_true, y_pred, thr_val=None, title=None, savepath=None):
     plt.figure()
     lw = 2
     plt.plot(
-        fpr, tpr, color="orange", lw=lw, label="{} (AUC = {:.3})".format(title, roc_auc),
+        fpr,
+        tpr,
+        color="orange",
+        lw=lw,
+        label="{} (AUC = {:.3})".format(title, roc_auc),
     )
     plt.plot([0, 1], [0, 1], color="navy", lw=lw / 4, linestyle="--")
     if not isinstance(thr, list):
@@ -24,12 +28,11 @@ def plot_roc(y_true, y_pred, thr_val=None, title=None, savepath=None):
 
     if savepath:
         plt.savefig(savepath, dpi=300, bbox_inches="tight")
+    plt.close()
 
 
 def plot_roc_ensemble(y_true, y_pred, thr_val=None, title=None, figtitle=None, savepath=None):
-    assert (isinstance(y_true, list) and isinstance(y_pred, list)) and (
-        len(y_true) == len(y_pred)
-    ), "Arguments y_true, y_pred should be lists of equal length"
+    assert (isinstance(y_true, list) and isinstance(y_pred, list)) and (len(y_true) == len(y_pred)), "Arguments y_true, y_pred should be lists of equal length"
 
     lw = 1
     plt.figure()
@@ -101,7 +104,6 @@ def plot_roc_ensemble(y_true, y_pred, thr_val=None, title=None, figtitle=None, s
 
 
 def plot_hypnodensity(logits, preds, trues, title=None, save_path=None):
-
     # Setup title
     f, ax = plt.subplots(nrows=4, figsize=(20, 5), dpi=400)
     f.suptitle(title)
@@ -143,9 +145,7 @@ def plot_hypnodensity(logits, preds, trues, title=None, save_path=None):
     ax[0].tick_params(axis="both", which="both", length=0)
 
     # Create legend
-    legend_elements = [
-        mpl.patches.Patch(facecolor=cm, edgecolor=cm, label=lbl) for cm, lbl in zip(cmap, ["W", "N1", "N2", "N3", "REM"])
-    ]
+    legend_elements = [mpl.patches.Patch(facecolor=cm, edgecolor=cm, label=lbl) for cm, lbl in zip(cmap, ["W", "N1", "N2", "N3", "REM"])]
     ax[0].legend(handles=legend_elements, loc="lower center", bbox_to_anchor=[0.5, 1.0], ncol=5)
     #     sns.despine(top=True, bottom=True, left=True, right=True)
     #     plt.tight_layout()

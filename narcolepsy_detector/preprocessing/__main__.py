@@ -32,7 +32,7 @@ def merge_dfs(data_dir):
     dfs.to_csv(saveFile)
 
 
-def prepare_data(data_dir, resolutions, output_dir, subset, saveFile=None, data_master=None):
+def prepare_data(data_dir, resolutions, output_dir, subset, saveFile=None, data_master=None, feature_set=None):
 
     if not isinstance(resolutions, list):
         resolutions = [resolutions]
@@ -106,15 +106,36 @@ def prepare_data(data_dir, resolutions, output_dir, subset, saveFile=None, data_
                 if len(hypnodensity) == 0:
                     continue
                 feature_vec = []
-                feature_vec.extend(extract_features(hypnodensity, resolution, hypnodensity_30s))
-                # feature_vec.extend(multi_step_transition_matrix(hypnodensity, resolution=resolution))
-                feature_vec.extend(mtm_feature_extraction(hypnodensity, resolution=resolution))
+
+                if 'standard' in feature_set:
+                    feature_vec.extend(extract_features(hypnodensity, resolution, hypnodensity_30s))
+                    feature_vec.extend(mtm_feature_extraction(hypnodensity, resolution=resolution))
+                
+                if 'mtm-scored' in feature_set:
+                    if (contents['targets'] == 0).all():
+                        feature_vec.append(None)
+                    else:
+                        feature_vec.extend(mtm_feature_extraction(contents['targets'].T, resolution=resolution))
+
+                if "mtm-argmax" in feature_set:
+                    feature_vec.extend(mtm_feature_extraction((hypnodensity == hypnodensity.max(axis=1, keepdims=True)).astype(np.int), resolution=resolution))
+                # Unused
+                # # feature_vec.extend(multi_step_transition_matrix(hypnodensity, resolution=resolution))
+                
                 features[i] = feature_vec
                 # features[i] = extract_features(hypnodensity, resolution, hypnodensity_30s)
                 # features[i] = multi_step_transition_matrix(hypnodensity, resolution=resolution)
                 # _, *features[i] = calc_sorem(hypnodensity, resolution, [thr])[0]
                 # _, *features[i] = calc_nremfrag(hypnodensity, resolution, [thr])[0]
                 # threshold[i] = thr
+            if 'mtm-scored' in feature_set:
+                if any([f is None for fs in features for f in fs]):
+                    feature_length = list(reversed(sorted([len(f) for f in features])))[0]
+                    for idx in range(len(features)):
+                        if len(features[idx]) > 1:
+                            continue
+                        else:
+                            features[idx] = [None] * feature_length
             features = np.asarray(features)
             _df = pd.DataFrame({"ID": ID, "Cohort": cohort, "Label": labels, "Threshold": threshold, "Resolution": res}).join(
                 pd.DataFrame(features)
@@ -159,7 +180,6 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--output-dir", type=str, default="./data/narco_features")
     parser.add_argument("-r", "--resolution", type=float, nargs="+", default=15)
     parser.add_argument("-c", "--cohort", type=none_or_str, default=None)
-    # parser.add_argument("-t", "--test", action="store_true")
     parser.add_argument("-s", "--subset", type=str)
     parser.add_argument("--merge", action="store_true")
     parser.add_argument("--save_file", default=None, type=str)

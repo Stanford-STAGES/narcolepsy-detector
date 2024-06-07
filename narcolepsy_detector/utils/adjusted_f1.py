@@ -27,7 +27,7 @@ def adjusted_f1(
     return 2 * tp / (2 * tp + fp + fn)
 
 
-def adjusted_f1_fn(estimator, X, y, prevalence, data_prevalence, specificity=0.90):
+def adjusted_f1_fn(estimator, X, y, prevalence, data_prevalence, specificity=0.90, *args, **kwargs):
     y_score = estimator.predict_proba(X)
 
     if y_score.ndim > 1:
