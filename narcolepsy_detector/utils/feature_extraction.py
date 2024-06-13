@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pywt
 
-from utils.rolling_window import rolling_window_nodelay
+from narcolepsy_detector.utils.rolling_window import rolling_window_nodelay
 
 
 feature_functions = {

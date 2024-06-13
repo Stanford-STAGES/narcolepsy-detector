@@ -1,5 +1,10 @@
 import os
+from pathlib import Path
 from argparse import ArgumentParser
+
+
+from narcolepsy_detector.utils.constants import RESOLUTIONS
+from narcolepsy_detector.utils.logger import get_logger
 
 
 def none_or_str(value):
@@ -7,6 +12,56 @@ def none_or_str(value):
         return None
 
     return value
+
+
+def inference_arguments():
+
+        parser = ArgumentParser('Inference arguments for narcolepsy detector.')
+        parser.add_argument(
+            "-d",
+            "--data-dir",
+            required=True,
+            type=Path,
+            help="Path to containing hypnodensities (.pkl or .npy)",
+        )
+        parser.add_argument(
+            "-m",
+            "--model-dir",
+            # required=True,
+            default='models/no-smote_all-features_scale-std_fs-f1',
+            type=Path,
+            help="Path to directory containing trained model.",
+        )
+        parser.add_argument(
+            "-s",
+            "--savedir-output",
+            required=True,
+            type=Path,
+            help="Path to save output ROC curves.",
+        )
+        parser.add_argument(
+            "-r",
+            "--resolutions",
+            nargs="+",
+            default='all',
+            type=str,
+            help="Resolution(s) of hypnodensity data to use. If 'all', use all resolutions.",
+        )
+        parser.add_argument(
+             "--ensembling-method",
+            default="mean",
+            type=str,
+            choices=['mean', 'auc', 'auc-inv'],
+            help="Method to use for ensembling predictions.",
+        )
+        args = parser.parse_args()
+
+        if 'all' in args.resolutions:
+            args.resolutios = RESOLUTIONS
+        else:
+            args.resolutions = [RESOLUTIONS[res] for res in args.resolutions]
+
+        return args
 
 
 def eval_arguments():
