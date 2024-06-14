@@ -128,11 +128,11 @@ def predict_single_resolution(file, model_dir, resolution):
 def compute_ensemble(probs, vars, aucs, ensembling_method):
 
     if ensembling_method == "mean":
-        p_ens = np.mean(probs)
-        v_ens = np.mean(vars)
+        p_ens = np.mean(probs, axis=1)
+        v_ens = np.mean(vars, axis=1)
     elif ensembling_method == "median":
-        p_ens = np.median(probs)
-        v_ens = np.median(vars)
+        p_ens = np.median(probs, axis=1)
+        v_ens = np.median(vars, axis=1)
     elif ensembling_method == "auc":
         raise NotImplementedError("AUC ensembling not yet implemented")
     elif ensembling_method == "auc-inv":
@@ -144,45 +144,37 @@ def compute_ensemble(probs, vars, aucs, ensembling_method):
 def run_inference(data_dir, model_dir, savedir_output, resolutions, ensembling_method):
 
     # Get all the files in the directory
-    files = list(data_dir.glob("*.pkl"))
+    files = list(sorted(data_dir.glob("*.pkl")))
     n_files = len(files)
     n_resolutions = len(resolutions)
-    file_ids = []
-    probs = []
-    vars = []
-    res = []
-    aucs = []
+    dfs = []
+    probs = np.empty((n_files, n_resolutions))
+    vars = np.empty((n_files, n_resolutions))
+    res = np.empty((n_files, n_resolutions))
+    aucs = np.empty((n_files, n_resolutions))
 
-    # Predict for each file in turn
-    for file in tqdm(files, desc=f"Running narcolepsy prediction on {n_files} files"):
+    # Predict for a single resolution
+    logger.info(f"Running narcolepsy inference on {n_files} files for {n_resolutions} resolutions")
+    for j, resolution in enumerate(resolutions):
 
-        # Predict for a single resolution
-        for resolution in resolutions:
-            m, v, auc = predict_single_resolution(file, model_dir, resolution)
-
+        # Predict for each file in turn
+        file_ids = []
+        for i, file in enumerate(tqdm(files, desc=f"Resolution: {resolution}")):
+            probs[i, j], vars[i, j], aucs[i, j] = predict_single_resolution(file, model_dir, resolution)
             file_ids.append(file.stem.split("preds_")[1])
-            probs.append(m)
-            vars.append(v)
-            res.append(resolution)
-            aucs.append(auc)
+            res[i, j] = resolution
 
-        # Save ensemble predictions
-        p_ens, v_ens = compute_ensemble(probs, vars, aucs, ensembling_method)
-        file_ids.append(file.stem.split("preds_")[1])
-        probs.append(p_ens)
-        vars.append(v_ens)
-        res.append("ensemble")
-        aucs.append(None)
+        # Save df for this resolution
+        logger.info(f'Saving predictions for resolution: {resolution}...')
+        dfs.append(pd.DataFrame({"file_id": file_ids, "resolution": res[:, j], "prob": probs[:, j], "var": vars[:, j], "auc": aucs[:, j]}))
+        dfs[-1].to_csv(savedir_output / f"predictions_r{resolution}.csv", index=False)
 
-    print("Saving predictions to disk...")
-    df = pd.DataFrame({"file_id": file_ids, "resolution": res, "prob": probs, "var": vars, "auc": aucs})
-    df = pd.concat(
-        [
-            df.query('resolution != "ensemble"').sort_values(["resolution", "file_id"]),
-            df.query('resolution == "ensemble"').sort_values("file_id"),
-        ]
-    ).reset_index(drop=True)
-    savedir_output.mkdir(exist_ok=True, parents=True)
+    # Save ensemble predictions
+    p_ens, v_ens = compute_ensemble(probs, vars, aucs, ensembling_method)
+
+    print("Saving ensemble predictions to disk...")
+    dfs.append(pd.DataFrame({"file_id": file_ids, "resolution": ['ensemble'] * n_files, "prob": p_ens, "var": v_ens, "auc": [None] * n_files}))
+    df = pd.concat(dfs).reset_index(drop=True)
     df.to_csv(savedir_output / "predictions.csv", index=False)
 
 
@@ -192,7 +184,7 @@ def main_cli():
     """
 
     args = inference_arguments()
-
+    args.savedir_output.mkdir(exist_ok=True, parents=True)
     run_inference(args.data_dir, args.model_dir, args.savedir_output, args.resolutions, args.ensembling_method)
 
 
