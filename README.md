@@ -19,8 +19,8 @@ make requirements
 After installing the environment as stated above, new data can be run using the `ss-inference` command:
 ```
 nt1-inference --data-dir <directory containing hypnodensity files in .pkl format> \
-              --model-dir <Path to directory containing trained models.> \
               --savedir-output <output directory for saving narcolepsy predictions> \
-              --resolutions <list of resolutions to run inference on. If 'all'> \
-              --device <use GPU or CPU, default CPU>
+              --model-dir <Path to directory containing trained models.> \
+              --resolutions <list of resolutions to run inference on. If 'all', use all resolutions.> \
+              --ensembling-method <Method to use for ensembling predictions.>
 ```
