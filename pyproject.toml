@@ -7,12 +7,13 @@ name = "narcolepsy-detector"
 version = "1.0.0"
 authors = [{name = "Alexander Neergaard Zahid", email = "aneol@dtu.dk"}]
 description = "Predicting narcolepsy type 1 from high-frequency hypnodensities."
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
     "gpflow == 2.6.4",
     "imbalanced-learn",
     "matplotlib",
     "pandas",
+    "PyWavelets",
     "tensorflow == 2.11 ; platform_system != 'Darwin'",
     "tensorflow-macos == 2.11 ; platform_system == 'Darwin'",
     "tensorflow-probability == 0.19",
