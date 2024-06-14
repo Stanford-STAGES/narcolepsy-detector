@@ -56,7 +56,7 @@ def inference_arguments():
     args = parser.parse_args()
 
     if "all" in args.resolutions:
-        args.resolutios = RESOLUTIONS
+        args.resolutions = RESOLUTIONS.values()
     else:
         args.resolutions = [RESOLUTIONS[res] for res in args.resolutions]
 
