@@ -12,15 +12,13 @@ dependencies = [
     "gpflow == 2.6.4",
     "imbalanced-learn",
     "matplotlib",
+    "numpy < 2",
     "pandas",
     "PyWavelets",
-    "tensorflow == 2.11 ; platform_system != 'Darwin'",
-    "tensorflow-macos == 2.11 ; platform_system == 'Darwin'",
-    "tensorflow-probability == 0.19",
+    "tensorflow-probability == 0.21",
     "tqdm",
     "scikit-image",
     "scikit-learn == 1.2.1",
-
 ]
 
 [project.scripts]

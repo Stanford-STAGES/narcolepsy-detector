@@ -10,20 +10,55 @@
 #################################################################################
 
 PROJECT_NAME = narcolepsy-detector
-PYTHON_VERSION = 3.10
 PYTHON_INTERPRETER = python
+PLATFORM := $(shell uname)
+PYTHON_VERSION = 3.10
+CUDA_VERSION = 11.2
+CUDNN_VERSION = 8.1
+TF_VERSION = 2.14.0
 
 #################################################################################
 # COMMANDS                                                                      #
 #################################################################################
 
-## Set up python interpreter environment
-create_environment:
+## Set up Python interpreter environment
+create-environment:
 	conda create --name $(PROJECT_NAME) python=$(PYTHON_VERSION) --no-default-packages -y
 
-## Install Python Dependencies
-requirements: create_environment
+## Install package and dependencies with CPU version of TensorFlow
+install-cpu: create-environment install-tensorflow-cpu install-package
+
+## Install package and dependencies with GPU version of TensorFlow
+install-gpu: create-environment install-tensorflow-gpu install-package
+
+## Helper command for installing package
+install-package:
+	echo
+	echo "Installing project and requirements"
 	conda run -n $(PROJECT_NAME) $(PYTHON_INTERPRETER) -m pip install -e .
+
+## Helper command for installing CPU version of TensorFlow
+install-tensorflow-cpu:
+	echo
+	echo "Installing TensorFlow CPU version"
+ifeq ($(PLATFORM), Linux)
+	conda run -n $(PROJECT_NAME) $(PYTHON_INTERPRETER) -m pip install tensorflow==$(TF_VERSION)
+endif
+ifeq ($(PLATFORM), Darwin)
+	conda run -n $(PROJECT_NAME) $(PYTHON_INTERPRETER) -m pip install tensorflow-macos==$(TF_VERSION)
+endif
+
+## Helper command for installing GPU version of TensorFlow
+install-tensorflow-gpu:
+ifeq ($(PLATFORM), Darwin)
+	echo "GPU installation is not available for MacOS, please run `make install-cpu` instead!"
+else ifeq ($(PLATFORM), Linux)
+	echo
+	echo "Installing TensorFlow GPU version"
+	conda run -n $(PROJECT_NAME) $(PYTHON_INTERPRETER) -m pip install tensorflow[and-cuda]==$(TF_VERSION)
+else
+	echo "Unsupported OS detected, cannot install package!"
+endif
 
 ## Delete all compiled Python files
 clean:
