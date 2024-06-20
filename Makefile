@@ -2,6 +2,7 @@
 ## This is done to ensure that the commands are always executed, even if a file with the same name exists
 ## See https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html
 ## Remove this if you want to use this Makefile for real targets
+MAKEFLAGS += --silent
 .PHONY: *
 .ONESHELL:
 
@@ -29,17 +30,21 @@ create-environment:
 install-cpu: create-environment install-tensorflow-cpu install-package
 
 ## Install package and dependencies with GPU version of TensorFlow
+ifeq ($(PLATFORM), Linux)
 install-gpu: create-environment install-tensorflow-gpu install-package
+else ifeq ($(PLATFORM), Darwin)
+install-gpu: create-environment install-tensorflow-cpu install-package
+endif
 
 ## Helper command for installing package
 install-package:
-	echo
-	echo "Installing project and requirements"
+	echo "----------------------------------------------------------------------"
+	echo "Installing project package and requirements"
 	conda run -n $(PROJECT_NAME) $(PYTHON_INTERPRETER) -m pip install -e .
 
 ## Helper command for installing CPU version of TensorFlow
 install-tensorflow-cpu:
-	echo
+	echo "----------------------------------------------------------------------"
 	echo "Installing TensorFlow CPU version"
 ifeq ($(PLATFORM), Linux)
 	conda run -n $(PROJECT_NAME) $(PYTHON_INTERPRETER) -m pip install tensorflow==$(TF_VERSION)
@@ -51,12 +56,14 @@ endif
 ## Helper command for installing GPU version of TensorFlow
 install-tensorflow-gpu:
 ifeq ($(PLATFORM), Darwin)
+	echo "----------------------------------------------------------------------"
 	echo "GPU installation is not available for MacOS, please run `make install-cpu` instead!"
 else ifeq ($(PLATFORM), Linux)
-	echo
+	echo "----------------------------------------------------------------------"
 	echo "Installing TensorFlow GPU version"
 	conda run -n $(PROJECT_NAME) $(PYTHON_INTERPRETER) -m pip install tensorflow[and-cuda]==$(TF_VERSION)
 else
+	echo "----------------------------------------------------------------------"
 	echo "Unsupported OS detected, cannot install package!"
 endif
 
