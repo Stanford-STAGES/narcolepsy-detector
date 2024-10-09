@@ -16,7 +16,7 @@ make requirements
 *Note: the installation process may take a couple of minutes*
 
 ## Running inference on unseen data
-After installing the environment as stated above, new data can be run using the `ss-inference` command:
+After installing the environment as stated above, new data can be run using the `nt1-inference` command:
 ```
 nt1-inference --data-dir <directory containing hypnodensity files in .pkl format> \
               --savedir-output <output directory for saving narcolepsy predictions> \
